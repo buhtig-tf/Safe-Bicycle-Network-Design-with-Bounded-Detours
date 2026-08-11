@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Extracted/generated experiment data
+experiments/data/networks/
+experiments/data/instances/original/
+experiments/data/instances/reduced/
+experiments/data/results/
+
+# Generated publication output
+experiments/plots/
+experiments/tables/
+
+# Non-public/local ADFC working data
+experiments/data/adfc/build/
+experiments/data/adfc/private/
+
+# Local/editor files
+.DS_Store
+*.log
