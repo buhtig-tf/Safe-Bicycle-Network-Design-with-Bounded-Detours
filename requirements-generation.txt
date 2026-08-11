@@ -1,0 +1,4 @@
+-r requirements.txt
+osmnx==2.0.4
+geopy==2.3.0
+numpy==2.2.6

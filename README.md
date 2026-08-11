@@ -1,2 +1,330 @@
-# Safe-Bicycle-Network-Design-with-Bounded-Detours
-Code and data for the experiments of the paper "Algorithmics for Safe Bicycle Network Design with Bounded Detours in Rural Areas"
+# Bicycle Network Improvement Problem — Publication Artifact
+
+This repository contains the code and frozen experimental data used for the publication experiments on the **Bicycle Network Improvement Problem (BNIP)**.
+
+The artifact is organized around two goals:
+
+1. **Reproduce the publication experiments from frozen data.**
+2. **Optionally regenerate road networks from current OpenStreetMap data** and create new instances.
+
+The frozen archives are the authoritative source for reproducing the publication data. Live OpenStreetMap data may have changed since the experiments were performed.
+
+## Repository structure
+
+```text
+repo/
+├── README.md
+├── requirements.txt
+├── requirements-plots.txt
+├── requirements-generation.txt
+├── CITATION.cff
+├── LICENSE
+├── .gitignore
+├── zipfiles/
+│   ├── networks.zip
+│   └── original.tar.xz
+└── experiments/
+    ├── setup.py
+    ├── *.py
+    ├── plotter.py
+    └── data/
+        ├── adfc/
+        │   └── adfc_registry.py
+        ├── networks/
+        ├── instances/
+        └── results/
+```
+
+Generated output is written below `experiments/`, including:
+
+```text
+experiments/
+├── plots/
+└── tables/
+```
+
+## Software environment
+
+The cleaned artifact was tested locally with:
+
+- Python 3.10.12
+- Gurobi / `gurobipy` 12.0.3
+- NetworkX 3.3
+- Shapely 2.0.6
+- Matplotlib 3.10.3
+- OSMnx 2.0.4
+- geopy 2.3.0
+- NumPy 2.2.6
+
+The heavy publication experiments were run on a compute cluster with a newer Gurobi installation. The exact cluster Gurobi version should be checked separately if strict software-environment replication is required.
+
+Solver runtimes can vary across Gurobi versions, machines, operating systems, and available hardware even when the same instance and solver configuration are used.
+
+A valid Gurobi installation and license are required for the optimization experiments.
+
+## Installation
+
+Create and activate a Python environment of your choice, then install one of the following dependency sets from the repository root.
+
+### Core experiment environment
+
+```bash
+pip install -r requirements.txt
+```
+
+This installs the dependencies needed to load the frozen data, run preprocessing and optimization, verify solutions, and compute benchmark statistics.
+
+### Core + publication plots
+
+```bash
+pip install -r requirements-plots.txt
+```
+
+### Core + optional live network generation
+
+```bash
+pip install -r requirements-generation.txt
+```
+
+The generation environment is only needed when querying current OpenStreetMap data.
+
+## Frozen publication data
+
+The repository contains two archives:
+
+```text
+zipfiles/networks.zip
+zipfiles/original.tar.xz
+```
+
+`networks.zip` contains the frozen village and region road networks:
+
+```text
+networks/
+├── villages/
+└── regions/
+```
+
+`original.tar.xz` contains the frozen publication instances:
+
+```text
+original/
+├── villages/
+└── regions/
+```
+
+These archives are extracted below `experiments/data/`.
+
+## Initial setup
+
+From the repository root, run:
+
+```bash
+python3 experiments/setup.py
+```
+
+The default setup uses only the frozen archives. It performs no live OpenStreetMap query.
+
+After extraction, the relevant directories are:
+
+```text
+experiments/data/networks/
+experiments/data/instances/original/
+experiments/data/instances/reduced/
+experiments/data/results/
+```
+
+Use `--force` if the frozen archives should be extracted again:
+
+```bash
+python3 experiments/setup.py --force
+```
+
+## Working directory for experiments
+
+The experiment scripts intentionally use paths relative to the `experiments/` directory.
+
+After setup, run experiment, plotting, generation, and benchmark commands from:
+
+```bash
+cd experiments
+```
+
+The commands below assume this working directory.
+
+## Running a single instance
+
+The public solver configurations are:
+
+```text
+ilp
+ilp_tw_dp_cuts
+ilp_tw_dp_cuts2
+ilp_tw_dp_cuts12
+```
+
+The available preprocessors are:
+
+```text
+none
+kernel1
+```
+
+For the complete command-line interface:
+
+```bash
+python3 solve_instance.py --help
+```
+
+Example:
+
+```bash
+python3 solve_instance.py \
+  --instance data/instances/original/villages/altenholz_A_random-pairs_tf25_a12_i0.pkl \
+  --solver ilp \
+  --preprocessor none \
+  --timeout 60
+```
+
+Solver results are written as JSON and include the solver status, objective value when available, selected upgraded edges, runtime information, timeout, and termination reason.
+
+Feasible solutions are checked with the solution verifier before the experiment result is accepted.
+
+## Running batches of instances
+
+Use:
+
+```bash
+python3 solve_all_instances.py --help
+```
+
+The batch runner exposes the same public solver and preprocessor configurations as `solve_instance.py`.
+
+The main solver configurations are the basic ILP and the treewidth-DP-cut ILP; the additional treewidth-DP cut setups are retained because they are used by the publication comparisons.
+
+## Reproducing the publication plots
+
+Publication plots require the experiment results and, for reduction-statistics plots, the reduced instances generated by the preprocessing runs. These derived files are not included in the repository. After running the corresponding experiments, install the plotting requirements and, from `experiments/`, run:
+
+```bash
+python3 plotter.py paper
+```
+
+This is the authoritative publication plotting recipe. It generates the conference plot set from the saved experiment results.
+
+Other plotting commands remain available as utilities:
+
+```bash
+python3 plotter.py --help
+```
+
+## Reproducing the publication benchmark tables
+
+From `experiments/`, run:
+
+```bash
+python3 benchmarkreport.py
+```
+
+This computes the statistics from the frozen networks and saves the two publication tables as LaTeX:
+
+```text
+tables/village_region_struct_table.tex
+tables/safety_model_summary_table.tex
+```
+
+The first table contains the structural village/region statistics used in the paper:
+
+- number of vertices,
+- number of edges,
+- feedback-edge-set fraction,
+- treewidth upper bound obtained via minimum fill-in,
+- maximum degree,
+- planarity.
+
+The second table contains the Model A/B/C safety classification summary together with the village and region unsafe-edge fractions.
+
+Running `benchmarkreport.py` therefore provides a direct check that the frozen network archive reproduces the numerical benchmark statistics reported in the paper.
+
+## Exact reproduction vs. live OpenStreetMap regeneration
+
+For publication reproduction, use the default frozen-data setup:
+
+```bash
+python3 experiments/setup.py
+```
+
+To deliberately replace the frozen networks with networks generated from **current live OpenStreetMap data**, install the generation requirements and run from the repository root:
+
+```bash
+python3 experiments/setup.py --regenerate-networks
+```
+
+The setup script invokes the network-generation workflow using safety models A, B, and C and radius 3 km.
+
+This is an alternate data-generation path, not an exact reproduction path. OpenStreetMap changes over time, so regenerated networks may differ from the frozen publication networks and can lead to different instances and experimental results.
+
+## Generating new instances
+
+The exact publication instances are supplied in `zipfiles/original.tar.xz`.
+
+`generate_instances.py` is provided for creating new instances using the same implementation of the random terminal-pair construction. Generation parameters such as alpha, target fractions, and the number of random instances must be supplied explicitly.
+
+See:
+
+```bash
+python3 generate_instances.py --help
+```
+
+The frozen archive, rather than a default parameter grid in the generator, defines the exact publication instance set.
+
+## Network and safety-model data
+
+Road networks are derived from OpenStreetMap.
+
+The repository contains a score-free registry of the selected municipalities at:
+
+```text
+experiments/data/adfc/adfc_registry.py
+```
+
+The municipality selection originates from the **ADFC-Fahrradklima-Test 2020**. The public registry contains the municipality metadata needed by the network-generation code but does not redistribute the ADFC score table.
+
+Reference:
+
+> Allgemeiner Deutscher Fahrrad-Club e.V. (ADFC). *ADFC-Fahrradklima-Test 2020: Städteranking*. 2021.
+
+The three road-safety models A, B, and C are implemented in the network-conversion code. Their publication summary can be regenerated with `benchmarkreport.py`.
+
+## Reproducibility notes
+
+For the strongest reproduction of the paper:
+
+1. use the frozen `networks.zip` and `original.tar.xz` archives;
+2. do not run the live OpenStreetMap regeneration path;
+3. use the saved experiment configuration and solver names described above;
+4. expect runtime values to vary with hardware and Gurobi version;
+5. use `python3 plotter.py paper` for the publication figures;
+6. use `python3 benchmarkreport.py` for the two publication benchmark tables.
+
+The frozen networks and instances are intended to separate algorithmic reproducibility from changes in external geographic data sources.
+
+## Citation
+
+Please cite the associated publication when using this artifact.
+
+Machine-readable citation metadata is provided in:
+
+```text
+CITATION.cff
+```
+
+## License
+
+See:
+
+```text
+LICENSE
+```
+
+for the software license.
